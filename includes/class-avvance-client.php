@@ -1,9 +1,9 @@
-
 <?php
 if ( ! defined( 'ABSPATH' ) ) exit;
 
 class Avvance_Client {
     protected $auth_base; protected $api_base; protected $client_key; protected $client_secret; protected $partner_id; protected $merchant_id;
+    
     public function __construct( $cfg ) {
         $this->auth_base     = untrailingslashit( $cfg['auth_base'] ?? '' );
         $this->api_base      = untrailingslashit( $cfg['api_base'] ?? '' );
@@ -12,44 +12,147 @@ class Avvance_Client {
         $this->partner_id    = $cfg['partner_id'] ?? '';
         $this->merchant_id   = $cfg['merchant_id'] ?? '';
     }
-    protected function token_key(){ return 'avvance_token_' . md5( $this->auth_base . '|' . $this->client_key ); }
-    protected function get_token(){
-        $cached = get_transient( $this->token_key() );
-        if ( $cached ) return $cached;
-        $auth = base64_encode( $this->client_key . ':' . $this->client_secret );
-        $res  = wp_remote_post( $this->auth_base . '/auth/oauth2/v1/token', [
-            'headers' => [ 'Authorization' => 'Basic ' . $auth, 'Content-Type' => 'application/x-www-form-urlencoded' ],
-            'body'    => [ 'grant_type' => 'client_credentials' ],
-            'timeout' => 20,
-        ] );
-        if ( is_wp_error( $res ) ) return $res;
-        $code = wp_remote_retrieve_response_code( $res );
-        $body = json_decode( wp_remote_retrieve_body( $res ), true );
-        if ( $code >= 200 && $code < 300 && ! empty( $body['accessToken'] ) ) {
-            $ttl = max( 60, intval( $body['expiresIn'] ?? 600 ) - 60 );
-            set_transient( $this->token_key(), $body['accessToken'], $ttl );
-            return $body['accessToken'];
-        }
-        return new WP_Error( 'avvance_auth', 'Token request failed', [ 'code' => $code, 'body' => $body ] );
+    
+    protected function token_key(){ 
+        return 'avvance_token_' . md5( $this->auth_base . '|' . $this->client_key ); 
     }
+    
+    protected function get_token(){
+        $cache_key = $this->token_key();
+        $cached = get_transient( $cache_key );
+        
+        if ( $cached ) {
+            return $cached;
+        }
+        
+        $auth_url = $this->auth_base . '/auth/oauth2/v1/token';
+        $auth_header = base64_encode( $this->client_key . ':' . $this->client_secret );
+        
+        $request_args = [
+            'headers' => [ 
+                'Content-Type' => 'application/x-www-form-urlencoded',
+                'Authorization' => 'Basic ' . $auth_header
+            ],
+            'body' => 'grant_type=client_credentials', // Use raw string as per curl example
+            'timeout' => 30,
+        ];
+        
+        $res = wp_remote_post( $auth_url, $request_args );
+        
+        if ( is_wp_error( $res ) ) {
+            if ( class_exists( 'Avvance_Logger' ) ) {
+                Avvance_Logger::log( 'Token request failed (WP Error)', [
+                    'error_code' => $res->get_error_code(),
+                    'error_message' => $res->get_error_message()
+                ] );
+            }
+            return $res;
+        }
+        
+        $code = wp_remote_retrieve_response_code( $res );
+        $response_body = wp_remote_retrieve_body( $res );
+        $body = json_decode( $response_body, true );
+        
+        if ( $code >= 200 && $code < 300 && !empty( $body['accessToken'] ) ) {
+            $token = $body['accessToken'];
+            $ttl = max( 60, intval( $body['expiresIn'] ?? 600 ) - 60 );
+            set_transient( $cache_key, $token, $ttl );
+            return $token;
+        }
+        
+        if ( class_exists( 'Avvance_Logger' ) ) {
+            Avvance_Logger::log( 'Token request failed', [
+                'status_code' => $code,
+                'response' => $response_body
+            ] );
+        }
+        
+        return new WP_Error( 'avvance_auth', 'Token request failed', [ 
+            'code' => $code, 
+            'response' => $response_body,
+            'parsed' => $body
+        ] );
+    }
+    
     protected function headers( $extra = [] ){
         $token = $this->get_token();
-        if ( is_wp_error( $token ) ) return $token;
-        $headers = [ 'Authorization' => 'Bearer ' . $token, 'partner-ID' => $this->partner_id, 'Correlation-ID' => wp_generate_uuid4() ];
-        return array_merge( $headers, $extra );
+        if ( is_wp_error( $token ) ) {
+            return $token;
+        }
+        
+        // Build headers exactly as specified in API docs
+        $headers = [ 
+            'Authorization' => 'Bearer ' . $token,
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+            'Correlation-ID' => wp_generate_uuid4()
+        ];
+        
+        // Add required headers per API documentation
+        if ( !empty( $this->partner_id ) ) {
+            $headers['partner-ID'] = $this->partner_id;
+        }
+        
+        if ( !empty( $this->merchant_id ) ) {
+            $headers['merchant-Id'] = $this->merchant_id;
+        }
+        
+        // Merge any extra headers
+        $final_headers = array_merge( $headers, $extra );
+        
+        return $final_headers;
     }
+    
     protected function request( $method, $path, $body = null, $extra_headers = [] ){
         $headers = $this->headers( $extra_headers );
         if ( is_wp_error( $headers ) ) return $headers;
-        $args = [ 'method' => $method, 'timeout' => 25, 'headers' => $headers ];
-        if ( $body !== null ) { $args['body'] = wp_json_encode( $body ); $args['headers']['Content-Type'] = 'application/json'; }
+        
         $url = $this->api_base . $path;
+        
+        $args = [ 
+            'method' => $method, 
+            'timeout' => 30, 
+            'headers' => $headers,
+            'sslverify' => true
+        ];
+        
+        if ( $body !== null ) { 
+            $args['body'] = wp_json_encode( $body );
+        }
+        
         $res = wp_remote_request( $url, $args );
-        if ( is_wp_error( $res ) ) return $res;
+        
+        if ( is_wp_error( $res ) ) {
+            if ( class_exists( 'Avvance_Logger' ) ) {
+                Avvance_Logger::log( 'API request failed (WP Error)', [
+                    'url' => $url,
+                    'error' => $res->get_error_message()
+                ] );
+            }
+            return $res;
+        }
+        
         $code = wp_remote_retrieve_response_code( $res );
-        $data = json_decode( wp_remote_retrieve_body( $res ), true );
-        if ( $code >= 200 && $code < 300 ) return $data;
-        return new WP_Error( 'avvance_http_error', 'HTTP ' . $code, [ 'body' => $data ] );
+        $response_body = wp_remote_retrieve_body( $res );
+        $data = json_decode( $response_body, true );
+        
+        if ( $code >= 200 && $code < 300 ) {
+            return $data;
+        }
+        
+        if ( class_exists( 'Avvance_Logger' ) ) {
+            Avvance_Logger::log( 'API request failed with HTTP error', [
+                'url' => $url,
+                'status_code' => $code,
+                'response_body' => $response_body
+            ] );
+        }
+        
+        return new WP_Error( 'avvance_http_error', 'HTTP ' . $code, [ 
+            'body' => $data, 
+            'response' => $response_body,
+            'code' => $code
+        ] );
     }
 
     public function financing_initiate( WC_Order $order ){
@@ -57,6 +160,7 @@ class Avvance_Client {
         $order->update_meta_data( '_avvance_partner_session', $partnerSessionId );
         $order->update_meta_data( '_avvance_merchant_id', $this->merchant_id );
         $order->save();
+        
         $payload = [
             'partnerSessionId'      => $partnerSessionId,
             'merchantId'            => $this->merchant_id,
@@ -89,24 +193,49 @@ class Avvance_Client {
             'partnerReturnErrorUrl' => wc_get_cart_url() . '?avvance=altpay',
             'metadata'              => [ [ 'key' => 'wc_order_id', 'value' => (string) $order->get_id() ] ],
         ];
+        
         return $this->request( 'POST', '/poslp/services/avvance-loan/v1/create', $payload );
     }
 
     public function notification_status( WC_Order $order ){
         $guid = $order->get_meta('_avvance_application_guid');
-        if ( ! $guid ) return new WP_Error('avvance_missing_guid','Missing application GUID');
-        $headers = [ 'merchantId' => $this->merchant_id ];
-        $path    = '/poslp/services/avvance-loan/v1/notification-status?notificationId=' . rawurlencode( $guid );
-        return $this->request( 'GET', $path, null, $headers );
+        if ( ! $guid ) {
+            return new WP_Error('avvance_missing_guid','Missing application GUID');
+        }
+        
+        // Validate required configuration
+        if ( empty( $this->partner_id ) ) {
+            return new WP_Error('avvance_config_error', 'partner-ID is required but not configured');
+        }
+        if ( empty( $this->merchant_id ) ) {
+            return new WP_Error('avvance_config_error', 'merchantId is required but not configured');
+        }
+        
+        // Build the path (no query parameters)
+        $path = '/poslp/services/avvance-loan/v1/notification-status';
+        
+        // Add notificationId as a header parameter (using applicationGUID)
+        $extra_headers = [
+            'notificationId' => $guid
+        ];
+        
+        return $this->request( 'GET', $path, null, $extra_headers );
     }
 
     public function void( WC_Order $order ){
-        $payload = [ 'merchantId' => $this->merchant_id, 'partnerSessionId' => $order->get_meta('_avvance_partner_session') ];
+        $payload = [ 
+            'merchantId' => $this->merchant_id, 
+            'partnerSessionId' => $order->get_meta('_avvance_partner_session') 
+        ];
         return $this->request( 'POST', '/poslp/services/avvance-loan/v1/void', $payload );
     }
 
     public function refund( WC_Order $order, $amount, $reason = '' ){
-        $payload = [ 'merchantId' => $this->merchant_id, 'partnerSessionId' => $order->get_meta('_avvance_partner_session'), 'refundAmount' => (float) $amount ];
+        $payload = [ 
+            'merchantId' => $this->merchant_id, 
+            'partnerSessionId' => $order->get_meta('_avvance_partner_session'), 
+            'refundAmount' => (float) $amount 
+        ];
         return $this->request( 'POST', '/poslp/services/avvance-loan/v1/refund', $payload );
     }
 }
