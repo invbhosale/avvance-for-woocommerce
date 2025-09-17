@@ -3,17 +3,16 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 
 class WC_Gateway_Avvance extends WC_Payment_Gateway {
     public function __construct() {
-        $this->id                 = 'avvance';
-        $this->method_title       = __( 'U.S. Bank Avvance', 'avvance-for-woocommerce' );
-        $this->method_description = __( 'U.S. Bank Avvance lets your customers split purchases into affordable installment loans with clear terms and no hidden fees.', 'avvance-for-woocommerce' );
-        $this->title              = __( 'U.S. Bank Avvance', 'avvance-for-woocommerce' );
-        $this->description        = __(
+        $this->id                  = 'avvance';
+        $this->method_title        = __( 'U.S. Bank Avvance', 'avvance-for-woocommerce' );
+        $this->method_description  = __( 'U.S. Bank Avvance lets your customers split purchases into affordable installment loans with clear terms and no hidden fees.', 'avvance-for-woocommerce' );
+        $this->title               = __( 'U.S. Bank Avvance', 'avvance-for-woocommerce' );
+        $this->description         = __(
             'Choose U.S. Bank Avvance to apply instantly for financing. If approved, complete your purchase with flexible installment options backed by U.S. Bank.',
             'avvance-for-woocommerce'
         );
-        $this->has_fields         = false;
+        $this->has_fields          = false;
 
-        // Point $this->icon to your bundled asset (used by some contexts).
         $this->icon = plugins_url( 'assets/img/avvance-icon.svg', defined('AVVANCE_FOR_WOOCOMMERCE_PLUGIN_FILE') ? AVVANCE_FOR_WOOCOMMERCE_PLUGIN_FILE : __FILE__ );
 
         $this->init_form_fields();
@@ -62,20 +61,20 @@ class WC_Gateway_Avvance extends WC_Payment_Gateway {
             'prod_api_base'   => [ 'title' => __( 'Prod API Base URL','avvance-for-woocommerce'),   'type'=>'text', 'default'=> '' ],
             'client_key'      => [ 'title' => __( 'OAuth Client Key','avvance-for-woocommerce'),    'type'=>'text', 'default'=> '' ],
             'client_secret'   => [ 'title' => __( 'OAuth Client Secret','avvance-for-woocommerce'), 'type'=>'password', 'default'=> '' ],
-            'partner_id'      => [ 'title' => __( 'Partner ID','avvance-for-woocommerce'),          'type'=>'text', 'default'=> '' ],
-            'merchant_id'     => [ 'title' => __( 'Merchant ID (MID)','avvance-for-woocommerce'),   'type'=>'text', 'default'=> '' ],
+            'partner_id'      => [ 'title' => __( 'Partner ID','avvance-for-woocommerce'),         'type'=>'text', 'default'=> '' ],
+            'merchant_id'     => [ 'title' => __( 'Merchant ID (MID)','avvance-for-woocommerce'),  'type'=>'text', 'default'=> '' ],
         ];
     }
 
     protected function client() {
         $env = $this->get_option('environment','uat');
         return new Avvance_Client([
-            'auth_base'     => $this->get_option($env . '_auth_base'),
-            'api_base'      => $this->get_option($env . '_api_base'),
-            'client_key'    => $this->get_option('client_key'),
-            'client_secret' => $this->get_option('client_secret'),
-            'partner_id'    => $this->get_option('partner_id'),
-            'merchant_id'   => $this->get_option('merchant_id'),
+            'auth_base'       => $this->get_option($env . '_auth_base'),
+            'api_base'        => $this->get_option($env . '_api_base'),
+            'client_key'      => $this->get_option('client_key'),
+            'client_secret'   => $this->get_option('client_secret'),
+            'partner_id'      => $this->get_option('partner_id'),
+            'merchant_id'     => $this->get_option('merchant_id'),
         ]);
     }
 
@@ -108,7 +107,10 @@ class WC_Gateway_Avvance extends WC_Payment_Gateway {
         }
 
         $order->add_order_note( sprintf( 'Avvance init: %s', esc_url_raw( $result['consumerOnboardingURL'] ) ) );
-        return [ 'result' => 'success', 'redirect' => $result['consumerOnboardingURL'] ];
+        
+        // This redirect will land on the standard WooCommerce "Thank You" page.
+        // We will handle the new window opening there via the thankyou_page() method.
+        return [ 'result' => 'success', 'redirect' => $order->get_checkout_order_received_url() ];
     }
 
     public function process_refund( $order_id, $amount = null, $reason = '' ) {
@@ -143,10 +145,62 @@ class WC_Gateway_Avvance extends WC_Payment_Gateway {
             $order->add_order_note( 'Avvance: cancel skipped; status = ' . $loan_status );
         }
     }
-
+    
+    // ----------------------------------------------------------------------------------------------------------------------------------------------------------------
+    // MODIFIED METHOD
+    // ----------------------------------------------------------------------------------------------------------------------------------------------------------------
     public function thankyou_page( $order_id ) {
-        echo '<p>' . esc_html__( 'Thank you for choosing Avvance. Your application status will update automatically.', 'avvance-for-woocommerce' ) . '</p>';
+        $order = wc_get_order( $order_id );
+        $apply_url = '';
+
+        // Retrieve the URL from the session data
+        if ( function_exists('WC') && WC()->session ) {
+            $session_data = WC()->session->get('avvance_current');
+            if ( isset($session_data['apply_url']) && isset($session_data['order_id']) && $session_data['order_id'] == $order_id ) {
+                $apply_url = $session_data['apply_url'];
+                // Clear the session data after retrieving it
+                WC()->session->set('avvance_current', null); 
+            }
+        }
+
+        if ( ! empty( $apply_url ) ) {
+            echo '<p>' . esc_html__( 'Thank you for choosing Avvance.', 'avvance-for-woocommerce' ) . '</p>';
+            
+            // The JavaScript code to open the new window
+            ?>
+            <script>
+                (function() {
+                    var applyUrl = '<?php echo esc_url_raw( $apply_url ); ?>';
+                    var paymentWindow = window.open(applyUrl, '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+                    
+                    if (paymentWindow) {
+                        // Focus the new window for a better user experience
+                        paymentWindow.focus();
+                        console.log('Payment window opened successfully.');
+                    } else {
+                        // If the pop-up was blocked, display a message and a clickable link
+                        var thankyouContainer = document.querySelector('.woocommerce-thankyou-order-received');
+                        if (thankyouContainer) {
+                            var linkMessage = document.createElement('p');
+                            linkMessage.innerHTML = '<?php echo esc_js( __( 'Your browser blocked the pop-up window. Please click the button below to continue with your application.', 'avvance-for-woocommerce' ) ); ?>';
+                            thankyouContainer.appendChild(linkMessage);
+                            
+                            var linkButton = document.createElement('a');
+                            linkButton.href = applyUrl;
+                            linkButton.target = '_blank';
+                            linkButton.className = 'button alt';
+                            linkButton.textContent = '<?php echo esc_js( __( 'Continue to Avvance', 'avvance-for-woocommerce' ) ); ?>';
+                            thankyouContainer.appendChild(linkButton);
+                        }
+                    }
+                })();
+            </script>
+            <?php
+        } else {
+            echo '<p>' . esc_html__( 'Thank you for your order. Your application status will update automatically.', 'avvance-for-woocommerce' ) . '</p>';
+        }
     }
+    // ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
     public function add_sync_order_action( $actions ) {
         $order = wc_get_order();
