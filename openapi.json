@@ -1,0 +1,2935 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Avvance Connect APIs",
+    "description": "\n# Overview\n\n\nAvvance Connect Integration enables you to embed U.S. Bank–backed point-of-sale financing into your platform. Through a set of well-defined REST APIs and real-time webhook notifications, you can offer consumers an installment financing option during checkout—while maintaining full control over the merchant experience. With Avvance Connect, your system initiates financing using shopping cart and invoice data, generates unique consumer application links, and receives real-time updates on the consumer’s loan application process. Additional capabilities include presenting pre-approval link and capturing pre-approval leads, along with support for transaction adjustments (voids/refunds) and detailed reporting.\n",
+    "termsOfService": "https://developer.usbank.com/terms",
+    "contact": {
+      "name": "U.S. Bank Avvance API Support",
+      "email": "apisupport@usbank.com"
+    },
+    "license": {
+      "name": "Subject to U.S. Bank Developer Portal Terms of Use and API License Agreement.  © 2024 U.S. Bank",
+      "url": "https://developer.usbank.com/terms"
+    },
+    "version": "1.5"
+  },
+  "servers": [
+    {
+      "url": "https://alpha-api2.usbank.com",
+      "description": "Sandbox"
+    },
+    {
+      "url": "https://api2.usbank.com",
+      "description": "Production"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Authentication Request",
+      "description": "Avvance REST APIs use OAuth 2.0 access tokens to authenticate requests. In order to set up the OAuth integration and token request, the following steps will be performed:\n\n1. Avvance will send instructions including a key and a secret, securely to you. Your key and secret will need to be Base64 encoded as key:secret \n2. Get a token via the /token endpoint. Send your encoded client credentials in the header. Avvance will return an access token.\n3. Send the access token in the header for all other operations.\n4. Subsequent tokens are acquired by sending an authentication request to /token endpoint and receiving a new valid token, regardless of the expiration time of the previously received token. There is no refresh token mechanism.\n\nNever share your secret key. Keep it guarded and secure.\n"
+    },
+    {
+      "name": "Pre-Approval-Link-API",
+      "description": "Pre-approval link API provides a unique Pre-approval link for the merchants of integrated partners. Share this merchant specific exclusive Avvance pre-approval link with your merchants so that merchant's customers can find out if they are pre-approved for a U.S. Bank Avvance installment loan.\n\nCustomers complete a short, online form hosted by U.S. Bank and receive a real time decision for their pre-approval amount. We notify you who is pre-approved using a Pre-approval leads webhook and you can make these leads available for your merchants so that they can finalize the sale."
+    },
+    {
+      "name": "Pre-Approval-Leads-Webhook",
+      "description": "Pre-approved customers are qualified leads for your merchants.  We notify you who is pre-approved using a Pre-approval leads webhook and you can make these leads available for your merchants so that they can finalize the sale."
+    },
+    {
+      "name": "Financing-Initiation-API",
+      "description": "The Financing Initiation API is a crucial component of the Avvance platform, enabling merchants to request payment using Avvance as mode of payment from their customers. By using this API, you can seamlessly integrate Avvance financing options into your point-of-sale system.\n\nFinancing initiation API generates a unique customer application URL based on the provided invoice information. This URL can be shared with the customer via email, text, or QR code to start the U.S Bank hosted loan application process. This URL is valid for 30 days. Note - U.S. Bank hosted loan application does not support iframe."
+    },
+    {
+      "name": "Loan-Status-Webhook",
+      "description": "Avvance use webhooks for seamless and efficient integration experience to allow Partners to easily obtain the status of consumer loan application. Refer to the Status codes and error codes page for the loan status webhook statuses. Partner can use the loan status to drive the backend experience and associated merchant message to keep merchant up to date on the transaction."
+    },
+    {
+      "name": "Void-API",
+      "description": "Void API is a POST request that voids a previous Avvance Purchase or Refund transaction. Only Avvance transactions that are not settled can be voided."
+    },
+    {
+      "name": "Refund-API",
+      "description": "Refund API is a POST request that refunds a previous Avvance Purchase. Only Avvance transactions that are settled can be Refunded. Partial Refunds are allowed. Sum of partial Refund amount cannot exceed the original Avvance Purchase Amount. You can void the issued refund if its not settled. \n"
+    },
+    {
+      "name": "Reporting-API",
+      "description": "Reporting API retrieves the transactions associated with the merchants and the partners."
+    },
+    {
+      "name": "Notification-Status-API",
+      "description": "Avvance sends webhooks to partners for customer loan status for their invoice. Notification Status API can be used by the partner in case if there is delay in getting webhook notification or webhook message is lost."
+    },
+    {
+      "name": "Enroll-Merchant-Request",
+      "description": "Enroll Merchant Request API can be called upon to initiate a merchant enrollment flow from a partner system to enable Avvance.\n\n* Pre-requisite - Merchant must already have an existing ELavon issued MID.\n* API requires Elavon issued merchantId, firstName, lastName and principal user email id on Elavon file to be sent in the request.\n\n* Merchant activity webhook notification will be sent to partner with a activation message, upon receiving the activation partner can enable Avvance financing in their platform."
+    },
+    {
+      "name": "Merchant-Activity-Webhook",
+      "description": "Avvance use webhooks for seamless and efficient integration experience to allow Partners to easily obtain the status of merchant activity. Avvance sends webhooks to partners for merchant activation or deactivation. Partner can use the merchant activity webhook to enable or disable Avvance in their platform."
+    },
+    {
+      "name": "Manage-Products-UI",
+      "description": "Avvance offers option to manage products via hosted UI. Partner call this API by passing Elavon issued merchantId, firstName, lastName, principal user email id and edit flag. Upon submission, API generates and returns a unique URL with manage product options. Merchant can add or remove the Products once in 24 hrs window."
+    },
+    {
+      "name": "Manage-Products-API's",
+      "description": "Avvance offers manage products API's which Partner can utilize to show the products their merchant enrolled into, add or remove the Products, and unenroll from Avvance. Merchant can add or remove the Products once in 24 hrs window"
+    }
+  ],
+  "paths": {
+    "/poslp/services/avvance-loan/v1/transactions": {
+      "get": {
+        "tags": [
+          "Reporting-API"
+        ],
+        "summary": "Reporting",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "Bearer Token that was received as part of the Authentication request",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "example": "Bearer Mb6LKWrsfPGkS3mOLj1rPnwsPVW1R"
+            }
+          },
+          {
+            "name": "Correlation-ID",
+            "in": "header",
+            "description": "v4 Universally Unique Identifier (UUID). A unique ID set by partner and used by Avvance internal systems to trace the request.",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "example": "77ebbf62-2869-4953-9302-a1bf46c6e112"
+            }
+          },
+          {
+            "name": "partner-ID",
+            "in": "header",
+            "description": "Unique Partner ID assigned by Avvance at time of integration. Must be used across all the merchants under the partner.",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "example": "partner-org-name"
+            }
+          },
+          {
+            "name": "merchantId",
+            "in": "header",
+            "description": "The Elavon issued merchant ID (MID)",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "example": "435523232323"
+            }
+          },
+          {
+            "name": "startDate",
+            "in": "header",
+            "description": "Indicates the date from when the transactions need to be retrieved",
+            "required": false,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "example": "yyyy-MM-DD",
+              "default": "Current date - 1 day"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "header",
+            "description": "Indicates the date until when the transactions need to be retrieved. Date range is allowed maximum of 30 days only",
+            "required": false,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "example": "yyyy-MM-DD",
+              "default": "Current date"
+            }
+          },
+          {
+            "name": "pageNumber",
+            "in": "header",
+            "description": "Indicates the number of pages used for displaying the retrieved transactions. Date range is allowed maximum of 30 days only",
+            "required": false,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "example": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "header",
+            "description": "Indicates the number of transaction entries that can be displayed in one page",
+            "required": false,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "example": 10,
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MerchantTransactionsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/poslp/services/avvance-loan/v1/notification-status": {
+      "get": {
+        "tags": [
+          "Notification-Status-API"
+        ],
+        "summary": "Notification Status",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "Bearer Token that was received as part of the Authentication request",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "example": "Bearer Mb6LKWrsfPGkS3mOLj1rPnwsPVW1R"
+            }
+          },
+          {
+            "name": "Correlation-ID",
+            "in": "header",
+            "description": "v4 Universally Unique Identifier (UUID). A unique ID set by partner and used by Avvance internal systems to trace the request.",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "example": "77ebbf62-2869-4953-9302-a1bf46c6e112"
+            }
+          },
+          {
+            "name": "partner-ID",
+            "in": "header",
+            "description": "Unique Partner ID assigned by Avvance at time of integration. Must be used across all the merchants under the partner.",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "example": "partner-org-name"
+            }
+          },
+          {
+            "name": "merchantId",
+            "in": "header",
+            "description": "The Elavon issued merchant ID (MID)",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "example": "435523232323"
+            }
+          },
+          {
+            "name": "notificationId",
+            "in": "header",
+            "description": "For syncing loan status webhook response use the applicationGUID you received as response of Financing Initiate API.",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationStatusResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/oauth2/v1/token": {
+      "post": {
+        "tags": [
+          "Authentication Request"
+        ],
+        "summary": "Token Request",
+        "description": "OAuth 2.0 Token Endpoint",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "A base64 encoded string consisting of the consumer key and consumer secret values separated by a colon ':'. Keys will be issued by Avvance Intergration team.",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Basic MXN5SjFvXXXXXXXXXXXXXXXXXXXXXuaHlLZXJVTA=="
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthenticationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthencticationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthencticationErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthencticationErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthencticationErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "cURL",
+            "source": "curl --location --request POST 'https://alpha-api.usbank.com/auth/oauth2/v1/token' \\\n--header 'Content-Type: application/x-www-form-urlencoded' \\\n--header 'Authorization: Basic MXN5SjFvXXXXXXXXXXXXXXXXXXXXXuaHlLZXJVTA==' \\\n--data-urlencode 'grant_type=client_credentials'\n"
+          }
+        ]
+      }
+    },
+    "/poslp/services/partner/enroll-merchant": {
+      "post": {
+        "tags": [
+          "Enroll-Merchant-Request"
+        ],
+        "summary": "Enroll Merchant",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "Bearer Token that was received as part of the Authentication request",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "example": "Bearer Mb6LKWrsfPGkS3mOLj1rPnwsPVW1R"
+            }
+          },
+          {
+            "name": "Correlation-ID",
+            "in": "header",
+            "description": "v4 Universally Unique Identifier (UUID). A unique ID set by partner and used by Avvance internal systems to trace the request.",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "example": "77ebbf62-2869-4953-9302-a1bf46c6e112"
+            }
+          },
+          {
+            "name": "partner-ID",
+            "in": "header",
+            "description": "Unique Partner ID assigned by Avvance at time of integration. Must be used across all the merchants under the partner.",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "example": "partner-org-name"
+            }
+          },
+          {
+            "name": "X-Client-IP",
+            "in": "header",
+            "description": "The IP address of the client making the request, used for security purpose.",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "example": "100.100.0.10"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnrollmerchantRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmerchantResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/poslp/services/partner/manage-products": {
+      "post": {
+        "tags": [
+          "Manage-Products-UI"
+        ],
+        "summary": "Manage Products via hosted UI",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "Bearer Token that was received as part of the Authentication request",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "example": "Bearer Mb6LKWrsfPGkS3mOLj1rPnwsPVW1R"
+            }
+          },
+          {
+            "name": "Correlation-ID",
+            "in": "header",
+            "description": "v4 Universally Unique Identifier (UUID). A unique ID set by partner and used by Avvance internal systems to trace the request.",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "example": "77ebbf62-2869-4953-9302-a1bf46c6e112"
+            }
+          },
+          {
+            "name": "partner-ID",
+            "in": "header",
+            "description": "Unique Partner ID assigned by Avvance at time of integration. Must be used across all the merchants under the partner.",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "example": "partner-org-name"
+            }
+          },
+          {
+            "name": "X-Client-IP",
+            "in": "header",
+            "description": "The IP address of the client making the request, used for security purpose.",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "example": "100.100.0.10"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProductRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductCatalogResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/poslp/services/avvance-loan/v1/products": {
+      "get": {
+        "tags": [
+          "Manage-Products-API's"
+        ],
+        "summary": "Get products",
+        "operationId": "getProductCatalogFromNGApi",
+        "parameters": [
+          {
+            "name": "Identifier",
+            "in": "header",
+            "description": "Merchant ID",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Correlation-ID",
+            "in": "header",
+            "description": "v4 Universally Unique Identifier (UUID). A unique ID set by partner and used by Avvance internal systems to trace the request.",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "Bearer Token that was received as part of the Authentication request",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "example": "Bearer Mb6LKWrsfPGkS3mOLj1rPnwsPVW1R"
+            }
+          },
+          {
+            "name": "MccExtensionCode",
+            "in": "header",
+            "description": "MCC Extension Code",
+            "required": false,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserLoanbaseOptions"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Manage-Products-API's"
+        ],
+        "summary": "Update Product",
+        "parameters": [
+          {
+            "name": "Correlation-ID",
+            "in": "header",
+            "description": "v4 Universally Unique Identifier (UUID). A unique ID set by partner and used by Avvance internal systems to trace the request.",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "Bearer Token that was received as part of the Authentication request",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "example": "Bearer Mb6LKWrsfPGkS3mOLj1rPnwsPVW1R"
+            }
+          },
+          {
+            "name": "MccExtensionCode",
+            "in": "header",
+            "description": "Optional MCC Extension Code",
+            "required": false,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifyProductRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModifyProductresponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/poslp/services/avvance-loan/v1/unenroll": {
+      "post": {
+        "tags": [
+          "Manage-Products-API's"
+        ],
+        "summary": "Unenroll from Avvance",
+        "operationId": "unEnrollMerchant",
+        "parameters": [
+          {
+            "name": "Correlation-ID",
+            "in": "header",
+            "description": "v4 Universally Unique Identifier (UUID). A unique ID set by partner and used by Avvance internal systems to trace the request.",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "Bearer Token that was received as part of the Authentication request",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "example": "Bearer Mb6LKWrsfPGkS3mOLj1rPnwsPVW1R"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnenrollRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnenrollAvvanceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/poslp/services/avvance-loan/v1/create": {
+      "post": {
+        "tags": [
+          "Financing-Initiation-API"
+        ],
+        "summary": "Financing Initiation API",
+        "operationId": "createShoppingCartEmulator",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "Bearer Token that was received as part of the Authentication request",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "example": "Bearer Mb6LKWrsfPGkS3mOLj1rPnwsPVW1R"
+            }
+          },
+          {
+            "name": "Correlation-ID",
+            "in": "header",
+            "description": "v4 Universally Unique Identifier (UUID). A unique ID set by partner and used by Avvance internal systems to trace the request.",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "example": "77ebbf62-2869-4953-9302-a1bf46c6e112"
+            }
+          },
+          {
+            "name": "partner-ID",
+            "in": "header",
+            "description": "Unique Partner ID assigned by Avvance at time of integration. Must be used across all the merchants under the partner.",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "example": "partner-org-name"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinancingInitiationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinancingInitiationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication Failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/poslp/services/avvance-loan/v1/void": {
+      "post": {
+        "tags": [
+          "Void-API"
+        ],
+        "summary": "Void",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "Bearer Token that was received as part of the Authentication request",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "example": "Bearer Mb6LKWrsfPGkS3mOLj1rPnwsPVW1R"
+            }
+          },
+          {
+            "name": "Correlation-ID",
+            "in": "header",
+            "description": "v4 Universally Unique Identifier (UUID). A unique ID set by partner and used by Avvance internal systems to trace the request.",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "example": "77ebbf62-2869-4953-9302-a1bf46c6e112"
+            }
+          },
+          {
+            "name": "partner-ID",
+            "in": "header",
+            "description": "Unique Partner ID assigned by Avvance at time of integration. Must be used across all the merchants under the partner.",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "example": "partner-org-name"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoidTransactionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoidRefundResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/poslp/services/avvance-loan/v1/refund": {
+      "post": {
+        "tags": [
+          "Refund-API"
+        ],
+        "summary": "Refund",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "Bearer Token that was received as part of the Authentication request",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "example": "Bearer Mb6LKWrsfPGkS3mOLj1rPnwsPVW1R"
+            }
+          },
+          {
+            "name": "Correlation-ID",
+            "in": "header",
+            "description": "v4 Universally Unique Identifier (UUID). A unique ID set by partner and used by Avvance internal systems to trace the request.",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "example": "77ebbf62-2869-4953-9302-a1bf46c6e112"
+            }
+          },
+          {
+            "name": "partner-ID",
+            "in": "header",
+            "description": "Unique Partner ID assigned by Avvance at time of integration. Must be used across all the merchants under the partner.",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "example": "partner-org-name"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefundTransactionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoidRefundResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/poslp/services/avvance-loan/v1/preapproval/link": {
+      "get": {
+        "tags": [
+          "Pre-Approval-Link-API"
+        ],
+        "summary": "Pre-approval link",
+        "operationId": "preapprovalLink",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "Bearer Token that was received as part of the Authentication request",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "example": "Bearer Mb6LKWrsfPGkS3mOLj1rPnwsPVW1R"
+            }
+          },
+          {
+            "name": "Correlation-ID",
+            "in": "header",
+            "description": "v4 Universally Unique Identifier (UUID). A unique ID set by partner and used by Avvance internal systems to trace the request.",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "example": "77ebbf62-2869-4953-9302-a1bf46c6e112"
+            }
+          },
+          {
+            "name": "partner-ID",
+            "in": "header",
+            "description": "Unique Partner ID assigned by Avvance at time of integration. Must be used across all the merchants under the partner.",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "example": "partner-org-name"
+            }
+          },
+          {
+            "name": "Merchant-ID",
+            "in": "header",
+            "description": "The Elavon issued merchant ID (MID)",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "string",
+              "example": "435523232323"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreApprovalResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "NotificationStatusResponse": {
+        "type": "object",
+        "properties": {
+          "alternateID": {
+            "type": "string",
+            "description": "Unique Partner ID assigned by Avvance at time of integration. Must be used across all the merchants under the partner.",
+            "example": "partner-org-name"
+          },
+          "productName": {
+            "type": "string",
+            "description": "Product name",
+            "example": "BNPL"
+          },
+          "eventName": {
+            "type": "string",
+            "description": "Webhook event name for which payload is being sent",
+            "example": "LOAN_STATUS_DETAILS"
+          },
+          "occurredAt": {
+            "type": "string",
+            "description": "Date and time when this event has been triggered",
+            "example": "2023-06-28T17:08:50.000+0000"
+          },
+          "eventDetails": {
+            "$ref": "#/components/schemas/EventDetails"
+          }
+        }
+      },
+      "BaseLoanOptions": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "description": "Unique product id of the offering",
+            "example": "poslapr060"
+          },
+          "merchantDiscountPercentage": {
+            "type": "number",
+            "description": "Merchant Discount Rate or MDR in %",
+            "format": "double",
+            "example": 5.1
+          },
+          "termCount": {
+            "type": "integer",
+            "description": "duration of the product in months",
+            "format": "int32",
+            "example": 60
+          },
+          "termType": {
+            "type": "string",
+            "description": "Type of the duration eg. Months, days",
+            "example": "Months"
+          },
+          "productType": {
+            "type": "string",
+            "description": "Type of product being offered. Base of Ala Carte",
+            "example": "base"
+          },
+          "apr": {
+            "type": "boolean",
+            "description": "Is APR based product",
+            "example": true
+          },
+          "enrolled": {
+            "type": "boolean",
+            "description": "Confirmation whether merchant has already signed up for this product",
+            "example": true
+          },
+          "productName": {
+            "type": "string",
+            "description": "Name of the product",
+            "example": "BASE 5% Term 60 Months"
+          }
+        }
+      },
+      "UserLoanbaseOptions": {
+        "type": "object",
+        "properties": {
+          "baseLoanOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BaseLoanOptions"
+            }
+          },
+          "alacarteLoanOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BaseLoanOptions"
+            }
+          }
+        }
+      },
+      "UnenrollRequestBody": {
+        "type": "object",
+        "properties": {
+          "merchantId": {
+            "type": "string",
+            "description": "The Elavon issued merchant ID (MID)",
+            "example": "8025370860"
+          },
+          "feedback": {
+            "type": "string",
+            "description": "Merchant feedback if any",
+            "example": "It is too difficult for me and my employees to use."
+          },
+          "customFeedback": {
+            "type": "string",
+            "description": "Merchant feedback if any"
+          },
+          "unenrolled_by": {
+            "type": "string",
+            "description": "Name, Email data of the merchant contact who performed unenroll",
+            "example": "John Doe, John.doe@acme.com"
+          }
+        }
+      },
+      "UnenrollAvvanceResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "Unenrollment status",
+            "example": "success"
+          },
+          "successMessage": {
+            "type": "string",
+            "description": "Unenrollment success message",
+            "example": "successfully unenrolled from avvance"
+          }
+        }
+      },
+      "UpdateProductBody": {
+        "type": "object",
+        "properties": {
+          "changeRequestType": {
+            "type": "string",
+            "description": "Type of request to be performed eg. Add, Remove",
+            "example": "add"
+          },
+          "description": {
+            "type": "string",
+            "description": "Brief description of the product",
+            "example": "BASE 5% Term 60 Months"
+          },
+          "productCode": {
+            "type": "string",
+            "description": "Unique code for the product",
+            "example": "poslapr060"
+          }
+        }
+      },
+      "UpdateProductRequest": {
+        "required": [
+          "applicantEmail",
+          "isEditFlow",
+          "merchantId"
+        ],
+        "type": "object",
+        "properties": {
+          "merchantId": {
+            "maximum": 22,
+            "type": "string",
+            "description": "The Elavon issued merchant ID (MID)",
+            "example": "8025491732"
+          },
+          "applicantEmail": {
+            "maximum": 24,
+            "type": "string",
+            "description": "Email of the merchant",
+            "example": "john.doe@gmail.com"
+          },
+          "isEditFlow": {
+            "maximum": 10,
+            "type": "string",
+            "description": "Send this value as true to get Avvance hosted merchant product manage UI link.",
+            "example": "true"
+          }
+        }
+      },
+      "ModifyProductRequest": {
+        "type": "object",
+        "properties": {
+          "products": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UpdateProductBody"
+            }
+          },
+          "performedBy": {
+            "type": "string",
+            "description": "Who is performing the update action",
+            "example": "john doe"
+          },
+          "merchantEmail": {
+            "type": "string",
+            "description": "Email of the merchant who is performing the update",
+            "example": "john.doe@acme.com"
+          },
+          "merchantDBAName": {
+            "type": "string",
+            "description": "Merchant DBA name",
+            "example": "acme inc"
+          },
+          "merchantId": {
+            "type": "string",
+            "description": "The Elavon issued merchant ID (MID)",
+            "example": "8025491732"
+          }
+        }
+      },
+      "ProductCatalogResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "Possible values",
+            "example": "SUCCESS",
+            "enum": [
+              "SUCCESS",
+              "FAIL"
+            ]
+          },
+          "applyUrl": {
+            "type": "string",
+            "description": "applyUrl to start the merchant enrolment process.",
+            "example": "https://it01-onboarding.elavon.com/modifyproductUI"
+          }
+        }
+      },
+      "ModifyProductresponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "Status of the update",
+            "example": "SUCCESS"
+          },
+          "message": {
+            "type": "string",
+            "description": "update message",
+            "example": "Your changes have been saved."
+          }
+        }
+      },
+      "MerchantInvoice": {
+        "type": "object",
+        "properties": {
+          "txnDate": {
+            "type": "string",
+            "description": "Transaction date",
+            "example": "2024-02-29T00:00:00.000+0000"
+          },
+          "invoiceID": {
+            "type": "string",
+            "description": "Invoice ID",
+            "example": "INQUD33826967"
+          },
+          "txnType": {
+            "type": "string",
+            "description": "Transaction type",
+            "example": "FULL"
+          },
+          "consumerFirstName": {
+            "type": "string",
+            "description": "First name of the loan applicant",
+            "example": "John"
+          },
+          "consumerLastName": {
+            "type": "string",
+            "description": "Last name of the loan applicant",
+            "example": "Doe"
+          },
+          "txnStatus": {
+            "type": "string",
+            "description": "Transaction status",
+            "example": "SETTLED"
+          },
+          "txnAmount": {
+            "type": "number",
+            "description": "Transaction amount",
+            "format": "decimal",
+            "example": 1575
+          },
+          "sequenceNumber": {
+            "type": "integer",
+            "description": "Transaction order number",
+            "format": "int32",
+            "example": 1
+          },
+          "totalRefundedAmount": {
+            "type": "number",
+            "description": "Total refunded amount",
+            "format": "decimal",
+            "example": 0
+          }
+        }
+      },
+      "MerchantTransactionsResponse": {
+        "type": "object",
+        "properties": {
+          "transactions": {
+            "$ref": "#/components/schemas/Transactions"
+          }
+        }
+      },
+      "Metadata": {
+        "type": "object",
+        "properties": {
+          "pageNumber": {
+            "type": "integer",
+            "description": "Indicates the page number on which the retrieved transactions can be displayed",
+            "format": "int32",
+            "example": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "Indicates the number of transaction entries that can be displayed on one page",
+            "format": "int32"
+          },
+          "hasNext": {
+            "type": "boolean",
+            "description": "Indicates whether next page has transaction or not",
+            "example": true
+          }
+        }
+      },
+      "Transactions": {
+        "type": "object",
+        "properties": {
+          "merchantID": {
+            "$ref": "#/components/parameters/MerchantID"
+          },
+          "merchantInvoices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MerchantInvoice"
+            }
+          },
+          "_metadata": {
+            "$ref": "#/components/schemas/Metadata"
+          }
+        }
+      },
+      "EnrollmerchantRequest": {
+        "required": [
+          "merchantId"
+        ],
+        "type": "object",
+        "properties": {
+          "merchantId": {
+            "maximum": 22,
+            "type": "string",
+            "description": "The Elavon issued merchant ID (MID)",
+            "example": "8025491732"
+          },
+          "firstName": {
+            "maximum": 24,
+            "type": "string",
+            "description": "First name of the merchant",
+            "example": "John"
+          },
+          "lastName": {
+            "maximum": 24,
+            "type": "string",
+            "description": "Last name of the merchant",
+            "example": "Doe"
+          },
+          "applicantEmail": {
+            "maximum": 24,
+            "type": "string",
+            "description": "Email of the merchant on the Elavon record",
+            "example": "john.doe@gmail.com"
+          }
+        }
+      },
+      "EnrollmerchantResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "Possible values",
+            "enum": [
+              "SUCCESS",
+              "FAIL"
+            ]
+          },
+          "applyUrl": {
+            "type": "string",
+            "description": "applyUrl to start the merchant enrolment process.",
+            "example": "https://it01-onboarding.elavon.com/merchantenrollUI"
+          }
+        }
+      },
+      "VoidTransactionRequest": {
+        "required": [
+          "merchantId",
+          "partnerSessionId"
+        ],
+        "type": "object",
+        "properties": {
+          "merchantId": {
+            "maximum": 22,
+            "type": "string",
+            "description": "The Elavon issued merchant ID (MID)",
+            "example": "435523232323"
+          },
+          "partnerSessionId": {
+            "maximum": 64,
+            "type": "string",
+            "description": "Unique partner session ID, you sent in the financing initiation request",
+            "example": "77ebbf62-2869-4953-9302-a1bf46c6e112"
+          }
+        }
+      },
+      "MerchantActivity": {
+        "required": [
+          "alternateId",
+          "eventName",
+          "occurredAt",
+          "productName"
+        ],
+        "type": "object",
+        "properties": {
+          "alternateId": {
+            "type": "string",
+            "description": "Unique Partner ID assigned by Avvance at time of integration. Must be used across all the merchants under the partner.",
+            "example": "partner-org-name"
+          },
+          "occurredAt": {
+            "type": "string",
+            "description": "Date and time when this event has been triggered",
+            "example": "2023-06-28T17:08:50.000+0000"
+          },
+          "productName": {
+            "type": "string",
+            "description": "Product name",
+            "example": "BNPL"
+          },
+          "eventName": {
+            "type": "string",
+            "description": "Webhook event name for which payload is being sent",
+            "example": "AVVANCE_MERCHANT_ACTIVITY"
+          },
+          "eventDetails": {
+            "$ref": "#/components/schemas/MerchantEventDetails"
+          }
+        },
+        "description": "Indicates the stage of customer loan application process"
+      },
+      "PreApprovalLeads": {
+        "required": [
+          "alternateId",
+          "eventName",
+          "occurredAt",
+          "productName"
+        ],
+        "type": "object",
+        "properties": {
+          "alternateId": {
+            "type": "string",
+            "description": "Unique Partner ID assigned by Avvance at time of integration. Must be used across all the merchants under the partner.",
+            "example": "partner-org-name"
+          },
+          "occurredAt": {
+            "type": "string",
+            "description": "Date and time when this event has been triggered",
+            "example": "2023-06-28T17:08:50.000+0000"
+          },
+          "productName": {
+            "type": "string",
+            "description": "Product name",
+            "example": "BNPL"
+          },
+          "eventName": {
+            "type": "string",
+            "description": "Webhook event name for which payload is being sent",
+            "example": "PRE_APPROVAL_LEADS"
+          },
+          "eventDetails": {
+            "$ref": "#/components/schemas/PreApprovalEventDetails"
+          }
+        },
+        "description": "Indicates the stage of customer loan application process"
+      },
+      "MerchantEventDetails": {
+        "required": [
+          "eventStatus",
+          "merchantId"
+        ],
+        "type": "object",
+        "properties": {
+          "merchantId": {
+            "maxLength": 22,
+            "type": "string",
+            "description": "The Elavon issued merchant ID (MID)",
+            "example": "Merchant123"
+          },
+          "eventStatus": {
+            "maxLength": 22,
+            "type": "string",
+            "description": "Merchant activity notification type",
+            "example": "MERCHANT_ACTIVATION or MERCHANT_DEACTIVATION"
+          }
+        },
+        "description": "This section contains the actual webhook payload."
+      },
+      "PreApprovalEventDetails": {
+        "required": [
+          "customerCity",
+          "customerEmail",
+          "customerName",
+          "customerPhone",
+          "customerState",
+          "leadExpiryDate",
+          "leadGenerationTime",
+          "leadid",
+          "leadstatus",
+          "merchantEmail",
+          "mid"
+        ],
+        "type": "object",
+        "properties": {
+          "mid": {
+            "type": "string",
+            "description": "Indicates that the merchant ID (MID) assigned by Elavon",
+            "example": "8000000028"
+          },
+          "leadid": {
+            "type": "string",
+            "description": "Application Id from  the preapproval.",
+            "example": "93979628"
+          },
+          "leadstatus": {
+            "type": "string",
+            "description": "status of the preapproval",
+            "example": "Qualified lead"
+          },
+          "customerCity": {
+            "type": "string",
+            "description": "applicant city",
+            "example": "Irving"
+          },
+          "customerName": {
+            "type": "string",
+            "description": "applicant name",
+            "example": "John Doe"
+          },
+          "customerEmail": {
+            "type": "string",
+            "description": "applicant email ID",
+            "example": "john.doe@gmail.com"
+          },
+          "customerPhone": {
+            "type": "string",
+            "description": "applicant phone number",
+            "example": "9009009000"
+          },
+          "customerState": {
+            "type": "string",
+            "description": "applicant state",
+            "example": "TX"
+          },
+          "merchantEmail": {
+            "type": "string",
+            "description": "merchant emailID",
+            "example": "acme.business@acme.com"
+          },
+          "leadExpiryDate": {
+            "type": "string",
+            "description": "Set to 15 days from today.",
+            "example": "2024-11-05T00:00:00.000+0000"
+          },
+          "leadGenerationTime": {
+            "type": "string",
+            "description": "Occurrence time.",
+            "example": "2024-10-21T20:55:20.089+0000"
+          }
+        },
+        "description": "This section contains the actual webhook payload."
+      },
+      "LoanStatus": {
+        "required": [
+          "alternateId",
+          "eventName",
+          "notificationType",
+          "productName"
+        ],
+        "type": "object",
+        "properties": {
+          "notificationType": {
+            "maxLength": 7,
+            "type": "string",
+            "description": "Indicates that this request is webhook payload",
+            "example": "WEBHOOK"
+          },
+          "alternateId": {
+            "type": "string",
+            "description": "Unique Partner ID assigned by Avvance at time of integration. Must be used across all the merchants under the partner.",
+            "example": "partner-org-name"
+          },
+          "occurredAt": {
+            "type": "string",
+            "description": "Date and time when this event has been triggered",
+            "example": "2023-06-28T17:08:50.000+0000"
+          },
+          "productName": {
+            "type": "string",
+            "description": "Product name",
+            "example": "BNPL"
+          },
+          "eventName": {
+            "type": "string",
+            "description": "Webhook event name for which payload is being sent",
+            "example": "LOAN_STATUS_DETAILS"
+          },
+          "eventDetails": {
+            "$ref": "#/components/schemas/EventDetails"
+          }
+        },
+        "description": "Indicates the stage of customer loan application process"
+      },
+      "EventDetails": {
+        "required": [
+          "merchantId"
+        ],
+        "type": "object",
+        "properties": {
+          "merchantId": {
+            "maxLength": 22,
+            "type": "string",
+            "description": "The Elavon issued merchant ID (MID)",
+            "example": "435523232323"
+          },
+          "applicationGUID": {
+            "maxLength": 64,
+            "type": "string",
+            "description": "Unique loan application ID assigned to an invoice",
+            "example": "7b831e4d-cfc7-4215-bad4-11a88eff8090"
+          },
+          "terminalId": {
+            "maxLength": 28,
+            "type": "number",
+            "description": "The terminal identification number used to uniquely identify the Merchant and their financial institution to Elavon."
+          },
+          "paymentTransactionId": {
+            "maxLength": 10,
+            "type": "string",
+            "description": "Transaction reference number assigned by Elavon",
+            "example": "56F478UI89"
+          },
+          "approvalCode": {
+            "maxLength": 6,
+            "type": "string",
+            "description": "This field contains the approval code for an approved transaction",
+            "example": "528657"
+          },
+          "partnerSessionId": {
+            "maxLength": 64,
+            "type": "string",
+            "description": "Unique partner session ID, you sent in the financing initiation request",
+            "example": "77ebbf62-2869-4953-9302-a1bf46c6e112"
+          },
+          "loanStatus": {
+            "$ref": "#/components/schemas/Status"
+          },
+          "invoiceAmount": {
+            "$ref": "#/components/schemas/InvoiceAmount"
+          },
+          "loanSummary": {
+            "$ref": "#/components/schemas/LoanSummary"
+          }
+        },
+        "description": "This section contains the actual webhook payload."
+      },
+      "Status": {
+        "required": [
+          "merchantMessage",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "Refer to the [loan status](https://developer.elavon.com/products/avvance/v1/status-codes-and-error-codes#webhook-status-codes) section.",
+            "enum": [
+              "APPLICATION_STARTED",
+              "APPLICATION_LINK_EXPIRED",
+              "APPLICATION_APPROVED",
+              "APPLICATION_PENDING_REQUIRE_CUSTOMER_ACTION",
+              "APPLICATION_DENIED_REQUEST_ALTERNATE_PAYMENT",
+              "SYSTEM_ERROR_REQUEST_ALTERNATE_PAYMENT",
+              "INVOICE_PAYMENT_TRANSACTION_AUTHORIZED",
+              "INVOICE_PAYMENT_TRANSACTION_SETTLED"
+            ]
+          },
+          "merchantMessage": {
+            "type": "string",
+            "description": "Refer to the [loan status](https://developer.elavon.com/products/avvance/v1/status-codes-and-error-codes#webhook-status-codes) section.",
+            "enum": [
+              "PENDING_CUSTOMER_ACTION",
+              "EXPIRED_LINK",
+              "REQUEST_ALTERNATIVE_PAYMENT",
+              "INVOICE_PAID",
+              "PAYMENT_SETTLED"
+            ]
+          }
+        },
+        "description": "This informs the stage of customer checkout process which has been triggered to notify the partner."
+      },
+      "InvoiceAmount": {
+        "required": [
+          "currency",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "value": {
+            "maxLength": 8,
+            "type": "number",
+            "description": "Invoice amount",
+            "example": 1240
+          },
+          "currency": {
+            "maxLength": 7,
+            "type": "string",
+            "description": "Currency name. Currently only available in USA.",
+            "example": "USD"
+          }
+        },
+        "description": "Invoice amount object"
+      },
+      "LoanSummary": {
+        "type": "object",
+        "properties": {
+          "accountType": {
+            "maxLength": 24,
+            "type": "string",
+            "description": "Loan type name",
+            "example": "Avvance installment loan"
+          },
+          "accountNumber": {
+            "maxLength": 19,
+            "type": "string",
+            "description": "Account number associated with the loan (Last 4 digits)",
+            "example": "12121312121312121121"
+          },
+          "amountFinanced": {
+            "maxLength": 8,
+            "type": "string",
+            "description": "Amount of the loan financed",
+            "example": "700"
+          },
+          "apr": {
+            "maxLength": 4,
+            "type": "number",
+            "description": "Indicates the APR of the financed loan",
+            "example": 3
+          },
+          "term": {
+            "maxLength": 2,
+            "type": "number",
+            "description": "Indicates the payment term of the financed loan",
+            "example": 6
+          },
+          "monthlyPayment": {
+            "maxLength": 8,
+            "type": "number",
+            "description": "Indicates the monthly payment amount",
+            "example": 116.67
+          },
+          "totalLoanAmount": {
+            "maxLength": 8,
+            "type": "number",
+            "description": "Indicates the total invoice amount",
+            "example": 700
+          },
+          "firstPaymentDue": {
+            "maxLength": 10,
+            "type": "string",
+            "description": "Indicates the first payment due date",
+            "example": "01/17/2024"
+          }
+        },
+        "description": "Summary of loan issued. This object is available only if loanStatus decision is APPROVED and reason is TRANSACTION."
+      },
+      "VoidRefundResponse": {
+        "type": "object",
+        "properties": {
+          "isTransactionComplete": {
+            "maximum": 16,
+            "type": "boolean",
+            "description": "Indicates whether the transaction is complete or not. Value is `True` for success.",
+            "example": true
+          },
+          "paymentTransactionId": {
+            "maximum": 10,
+            "type": "string",
+            "description": "Transaction reference number assigned by Avvance",
+            "example": "797293de-6366-4eec-a74a-3e1bde57f6f2"
+          },
+          "approvalCode": {
+            "maximum": 6,
+            "type": "string",
+            "description": "Avvance approval code associated with an approved transaction",
+            "example": "6NBE61"
+          },
+          "partnerSessionId": {
+            "maximum": 64,
+            "type": "string",
+            "description": "Unique partner session ID, you sent in the financing initiation request",
+            "example": "77ebbf62-2869-4953-9302-a1bf46c6e112"
+          }
+        }
+      },
+      "BaseResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/Error"
+          },
+          "timestamp": {
+            "type": "string",
+            "description": "Indicates the date and the time when the error event occurred",
+            "format": "date-time"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Error code. Refer to [status codes and error codes](https://developer.elavon.com/products/avvance/v1/status-codes-and-error-codes#error-codes) for more details.",
+            "example": "500.44010.50010"
+          },
+          "message": {
+            "type": "string",
+            "description": "Error message. Refer to [status codes and error codes](https://developer.elavon.com/products/avvance/v1/status-codes-and-error-codes#error-codes) for more details.",
+            "example": "Subsystem Data unavailable"
+          },
+          "help": {
+            "type": "string",
+            "description": "URL to the help documentation",
+            "example": "https://developer.elavon.com/products/avvance/v1/api-reference#tag/Initiate-Loan"
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ErrorDetail"
+            }
+          }
+        }
+      },
+      "ErrorDetail": {
+        "type": "object",
+        "properties": {
+          "attributeName": {
+            "type": "string",
+            "description": "Name of the attribute causing the error",
+            "example": "PartnerId"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Detailed error reason. Refer to [status codes and error codes](https://developer.elavon.com/products/avvance/v1/status-codes-and-error-codes#error-codes) for more details.",
+            "example": "Subsystem Data unavailable"
+          },
+          "attributeValue": {
+            "type": "string",
+            "description": "DataType of the attribute causing the error",
+            "nullable": true,
+            "example": "String"
+          }
+        }
+      },
+      "RefundTransactionRequest": {
+        "required": [
+          "merchantId",
+          "partnerSessionId",
+          "refundAmount"
+        ],
+        "type": "object",
+        "properties": {
+          "partnerSessionId": {
+            "maximum": 64,
+            "type": "string",
+            "description": "Unique partner session ID, you sent in the financing initiation request",
+            "example": "77ebbf62-2869-4953-9302-a1bf46c6e112"
+          },
+          "merchantId": {
+            "maximum": 22,
+            "type": "string",
+            "description": "The Elavon issued merchant ID (MID)",
+            "example": "435523232323"
+          },
+          "refundAmount": {
+            "type": "number",
+            "description": "Amount to be refunded. Partial refunds are allowed.",
+            "format": "float",
+            "example": 300
+          }
+        }
+      },
+      "BillingAddress": {
+        "type": "object",
+        "properties": {
+          "street1": {
+            "maximum": 255,
+            "type": "string",
+            "description": "Street 1 - The house number and street name of the loan applicant",
+            "example": "123 First Street"
+          },
+          "street2": {
+            "maximum": 255,
+            "type": "string",
+            "description": "Street 2 - Apartment or condominium unit number and floor number of the loan applicant",
+            "example": "Unit 2"
+          },
+          "street3": {
+            "maximum": 255,
+            "type": "string",
+            "description": "Street 3 of the loan applicant",
+            "example": "Monterey apartments"
+          },
+          "city": {
+            "maximum": 64,
+            "type": "string",
+            "description": "City name of the loan applicant",
+            "example": "Los Angeles"
+          },
+          "state": {
+            "maximum": 2,
+            "type": "string",
+            "description": "State name of the loan applicant",
+            "example": "CA"
+          },
+          "countryCode": {
+            "maximum": 10,
+            "type": "string",
+            "description": "Country code of the loan applicant",
+            "example": "US"
+          },
+          "postalCode": {
+            "maximum": 10,
+            "type": "string",
+            "description": "Postal code of the loan applicant",
+            "example": "91755"
+          }
+        },
+        "description": "Billing Address if passed will be used to pre-fill address data within the consumer application. Auto suggestions will be provided on input."
+      },
+      "Consumer": {
+        "type": "object",
+        "properties": {
+          "language": {
+            "maximum": 10,
+            "type": "string",
+            "description": "Optional preferred language of the loan applicant",
+            "example": "EN"
+          },
+          "email": {
+            "maximum": 255,
+            "type": "string",
+            "description": "Email of the loan applicant",
+            "example": "abc@email.com"
+          },
+          "firstName": {
+            "maximum": 64,
+            "type": "string",
+            "description": "First name of the loan applicant",
+            "example": "Joe"
+          },
+          "middleName": {
+            "maximum": 64,
+            "type": "string",
+            "description": "Middle name of the loan applicant",
+            "example": "kr"
+          },
+          "lastName": {
+            "maximum": 64,
+            "type": "string",
+            "description": "Last name of the loan applicant",
+            "example": "Dow"
+          },
+          "mobilePhone": {
+            "maximum": 20,
+            "type": "string",
+            "description": "Mobile number of the loan applicant. Use 9009009000. Other mobile numbers will decline the transaction in UAT environment.",
+            "example": "9009009000"
+          },
+          "billingAddress": {
+            "$ref": "#/components/schemas/BillingAddress"
+          },
+          "shippingAddress": {
+            "$ref": "#/components/schemas/ShippingAddress"
+          },
+          "IPAddress": {
+            "type": "string",
+            "description": "IP Address of the device the payment request is created",
+            "example": "100.100.0.10"
+          }
+        },
+        "description": "Loan applicant details, when passed will be used to prefill the consumer application"
+      },
+      "MetaData": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Name of the custom field",
+            "example": "patient-id"
+          },
+          "value": {
+            "type": "string",
+            "description": "Value for the custom field",
+            "example": "patient001"
+          }
+        },
+        "description": "Use key value pair field to pass any additional information that you would like to pass."
+      },
+      "ShippingAddress": {
+        "type": "object",
+        "properties": {
+          "street1": {
+            "maximum": 255,
+            "type": "string",
+            "description": "Street 1 - The house number and street name of the loan applicant",
+            "example": "123 First Street"
+          },
+          "street2": {
+            "maximum": 255,
+            "type": "string",
+            "description": "Street 2 - Apartment or condominium unit number and floor number of the loan applicant",
+            "example": "Unit 2"
+          },
+          "street3": {
+            "maximum": 255,
+            "type": "string",
+            "description": "Street 3 of the loan applicant",
+            "example": "Monterey apartments"
+          },
+          "city": {
+            "maximum": 64,
+            "type": "string",
+            "description": "City name of the loan applicant",
+            "example": "Los Angeles"
+          },
+          "state": {
+            "maximum": 2,
+            "type": "string",
+            "description": "State name of the loan applicant",
+            "example": "CA"
+          },
+          "countryCode": {
+            "maximum": 10,
+            "type": "string",
+            "description": "Country code of the loan applicant",
+            "example": "US"
+          },
+          "postalCode": {
+            "maximum": 10,
+            "type": "string",
+            "description": "Postal code of the loan applicant",
+            "example": "91755"
+          },
+          "shippingDate": {
+            "pattern": "/([0-9]{4})-(?:[0-9]{2})-([0-9]{2})",
+            "type": "string",
+            "description": "Shipping date in yyyy-mm-dd format",
+            "example": "2024-05-10"
+          }
+        },
+        "description": "Shipping Address"
+      },
+      "FinancingInitiationRequest": {
+        "required": [
+          "invoiceAmount",
+          "merchantId",
+          "partnerSessionId"
+        ],
+        "type": "object",
+        "properties": {
+          "partnerSessionId": {
+            "maximum": 64,
+            "type": "string",
+            "description": "Unique partner session ID assigned to payment request by partner. This value will be used to Void, Refund transaction. Webhook notifications will have this value to tie the webhook to the payment request.",
+            "example": "77ebbf62-2869-4953-9302-a1bf46c6e112"
+          },
+          "merchantId": {
+            "maximum": 22,
+            "type": "string",
+            "description": "The Elavon issued merchant ID (MID)",
+            "example": "435523232323"
+          },
+          "invoiceAmount": {
+            "maximum": 25000,
+            "minimum": 300,
+            "type": "string",
+            "description": "Payment request amount has to be within range $300 and $25000.",
+            "example": "340"
+          },
+          "invoiceId": {
+            "maximum": 60,
+            "type": "string",
+            "description": "Optional Invoice or order ID assigned for the transaction",
+            "example": "INV8282882"
+          },
+          "merchantTransactionId": {
+            "maximum": 35,
+            "type": "string",
+            "description": "Optional merchant assigned value for this transaction",
+            "example": "TXNID00000192"
+          },
+          "purchaseDescription": {
+            "maximum": 255,
+            "type": "string",
+            "description": "Optional purchase description",
+            "example": "My Test Purchase"
+          },
+          "consumer": {
+            "$ref": "#/components/schemas/Consumer"
+          },
+          "metadata": {
+            "type": "array",
+            "description": "Metadata",
+            "items": {
+              "$ref": "#/components/schemas/MetaData"
+            }
+          },
+          "partnerReturnErrorUrl": {
+            "maximum": 1000,
+            "type": "string",
+            "description": "Optional return URL, used by consumer application UI to display Pay Another Way button in UI to redirect consumer to alternate payment page.",
+            "example": "https://avvance-partner.com/pay-another-way"
+          }
+        }
+      },
+      "FinancingInitiationResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "Possible values",
+            "enum": [
+              "SUCCESS",
+              "FAIL"
+            ]
+          },
+          "isMerchantValid": {
+            "type": "string",
+            "description": "Possible value is `Y` in case of success. The value `N` indicates failure.",
+            "example": "Y"
+          },
+          "isCartCreated": {
+            "type": "string",
+            "description": "Possible value is `Y` in case of success. The value `N` indicates failure.",
+            "example": "Y"
+          },
+          "consumerOnboardingURL": {
+            "type": "string",
+            "description": "Unique loan application link to be shared with customer to start the lending process. Note - Valid for 30 days. Approved applications expires in 48 hrs and will need a new request.",
+            "example": "https://uat01-onboarding.usbank.com/usl/avvance-installment-loans"
+          },
+          "applicationGUID": {
+            "type": "string",
+            "description": "Unique loan application ID assigned to an invoice",
+            "format": "uuid"
+          },
+          "partnerSessionID": {
+            "type": "string",
+            "description": "Unique partner session ID, you sent in the financing initiation request",
+            "example": "77ebbf62-2869-4953-9302-a1bf46c6e112"
+          }
+        }
+      },
+      "AuthenticationRequest": {
+        "required": [
+          "grant_type"
+        ],
+        "type": "object",
+        "properties": {
+          "grant_type": {
+            "type": "string",
+            "description": "Required OAuth 2.0 grant type.",
+            "example": "client_credentials",
+            "enum": [
+              "{}"
+            ]
+          }
+        }
+      },
+      "AuthencticationResponse": {
+        "properties": {
+          "tokenType": {
+            "type": "string",
+            "description": "Bearer Token",
+            "example": "BearerToken"
+          },
+          "expiresIn": {
+            "type": "string",
+            "description": "Expiry time in seconds",
+            "example": "899"
+          },
+          "accessToken": {
+            "type": "string",
+            "description": "Authorization Token (JWT) that should be sent in subsequent API Calls.",
+            "example": "6yRvexxxxxxxxxxxxxxRPkyOp"
+          }
+        }
+      },
+      "AuthencticationErrorResponse": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/AuthencticationErrorResponse_error"
+          }
+        }
+      },
+      "PreApprovalResponse": {
+        "type": "object",
+        "properties": {
+          "preApprovalLink": {
+            "type": "string",
+            "description": "Unique pre-approval link for integrated partners merchant.",
+            "example": "https://it1.avvance.com/flexible-financing.html?id=<uniquemerchantcode>"
+          }
+        }
+      },
+      "AuthencticationErrorResponse_error": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Error code",
+            "example": "400"
+          },
+          "message": {
+            "type": "string",
+            "description": "Error description",
+            "example": "invalid_request"
+          }
+        }
+      }
+    },
+    "parameters": {
+      "Authorization": {
+        "name": "Authorization",
+        "in": "header",
+        "description": "A base64 encoded string consisting of the consumer key and consumer secret values separated by a colon ':'. Keys will be issued by Avvance Intergration team.",
+        "required": true,
+        "style": "simple",
+        "explode": false,
+        "schema": {
+          "type": "string"
+        },
+        "example": "Basic MXN5SjFvXXXXXXXXXXXXXXXXXXXXXuaHlLZXJVTA=="
+      },
+      "BearerToken": {
+        "name": "Authorization",
+        "in": "header",
+        "description": "Bearer Token that was received as part of the Authentication request",
+        "required": true,
+        "style": "simple",
+        "explode": false,
+        "schema": {
+          "type": "string",
+          "example": "Bearer Mb6LKWrsfPGkS3mOLj1rPnwsPVW1R"
+        }
+      },
+      "ChannelID": {
+        "name": "Channel-ID",
+        "in": "header",
+        "description": "Channel id from where the request originated, Web or OWA for mobile.",
+        "required": true,
+        "style": "simple",
+        "explode": false,
+        "schema": {
+          "type": "string",
+          "example": "OWA"
+        }
+      },
+      "CorrelationID": {
+        "name": "Correlation-ID",
+        "in": "header",
+        "description": "v4 Universally Unique Identifier (UUID). A unique ID set by partner and used by Avvance internal systems to trace the request.",
+        "required": true,
+        "style": "simple",
+        "explode": false,
+        "schema": {
+          "type": "string",
+          "example": "77ebbf62-2869-4953-9302-a1bf46c6e112"
+        }
+      },
+      "ApplicationID": {
+        "name": "Application-ID",
+        "in": "header",
+        "description": "Application ID, that partner wish to send in case if they have multiple platforms. If you don't have any specific value then send AVNC_PTNR",
+        "required": true,
+        "style": "simple",
+        "explode": false,
+        "schema": {
+          "type": "string",
+          "example": "AVNC_PTNR"
+        }
+      },
+      "SessionKey": {
+        "name": "sessionKey",
+        "in": "header",
+        "description": "Universally Unique Identifier (UUID). A unique ID sent by the partner for every session. Sessionkey for the partners who use the different sessions.",
+        "required": true,
+        "style": "simple",
+        "explode": false,
+        "schema": {
+          "type": "string",
+          "example": "77ebbf62-2869-4953-9302-a1bf46c6e112"
+        }
+      },
+      "ClientData": {
+        "name": "clientdata",
+        "in": "header",
+        "description": "Metadata of the client information in JSON",
+        "required": true,
+        "style": "simple",
+        "explode": false,
+        "schema": {
+          "type": "string",
+          "example": "{ \"ChannelID\":\"OWA\" }",
+          "enum": [
+            "{\"ChannelID\":\"OWA\"}",
+            "{\"ChannelID\":\"WEB\"}"
+          ]
+        }
+      },
+      "SessionID": {
+        "name": "Session-ID",
+        "in": "header",
+        "description": "Universally Unique Identifier (UUID). A unique ID sent by the partner for every session. SessionID for the partners who use the different sessions.",
+        "required": true,
+        "style": "simple",
+        "explode": false,
+        "schema": {
+          "type": "string",
+          "example": "77ebbf62-2869-4953-9302-a1bf46c6e112"
+        }
+      },
+      "PartnerID": {
+        "name": "partner-ID",
+        "in": "header",
+        "description": "Unique Partner ID assigned by Avvance at time of integration. Must be used across all the merchants under the partner.",
+        "required": true,
+        "style": "simple",
+        "explode": false,
+        "schema": {
+          "type": "string",
+          "example": "partner-org-name"
+        }
+      },
+      "MerchantID": {
+        "name": "merchantId",
+        "in": "header",
+        "description": "The Elavon issued merchant ID (MID)",
+        "required": true,
+        "style": "simple",
+        "explode": false,
+        "schema": {
+          "type": "string",
+          "example": "435523232323"
+        }
+      },
+      "Merchant-ID": {
+        "name": "Merchant-ID",
+        "in": "header",
+        "description": "The Elavon issued merchant ID (MID)",
+        "required": true,
+        "style": "simple",
+        "explode": false,
+        "schema": {
+          "type": "string",
+          "example": "435523232323"
+        }
+      },
+      "X-Client-IP": {
+        "name": "X-Client-IP",
+        "in": "header",
+        "description": "The IP address of the client making the request, used for security purpose.",
+        "required": true,
+        "style": "simple",
+        "explode": false,
+        "schema": {
+          "type": "string",
+          "example": "100.100.0.10"
+        }
+      }
+    },
+    "securitySchemes": {
+      "Basic": {
+        "type": "http",
+        "scheme": "basic"
+      },
+      "BearerToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "x-webhooks": {
+    "merchantActivity": {
+      "post": {
+        "tags": [
+          "Merchant-Activity-Webhook"
+        ],
+        "summary": "Merchant_Activity",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ChannelID"
+          },
+          {
+            "$ref": "#/components/parameters/CorrelationID"
+          },
+          {
+            "$ref": "#/components/parameters/ApplicationID"
+          },
+          {
+            "$ref": "#/components/parameters/SessionID"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MerchantActivity"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "4xx": {
+            "description": "Do Not Retry"
+          },
+          "5xx": {
+            "description": "Retry. Avvance will try up to 2 times until server responds successfully. In event of continued failure, Avvance will attempt to post the response one more time the next day at 1 am CST. No Further attempts will be made.\n"
+          }
+        }
+      }
+    },
+    "loanStatus": {
+      "post": {
+        "tags": [
+          "Loan-Status-Webhook"
+        ],
+        "summary": "LOAN_STATUS_DETAILS",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ChannelID"
+          },
+          {
+            "$ref": "#/components/parameters/CorrelationID"
+          },
+          {
+            "$ref": "#/components/parameters/ApplicationID"
+          },
+          {
+            "$ref": "#/components/parameters/SessionID"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoanStatus"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "4xx": {
+            "description": "Do Not Retry"
+          },
+          "5xx": {
+            "description": "Retry. Avvance will try up to 2 times until server responds successfully. In event of continued failure, Avvance will attempt to post the response one more time the next day at 1 am CST. No Further attempts will be made.\n"
+          }
+        }
+      }
+    },
+    "preApprovalLeads": {
+      "post": {
+        "tags": [
+          "Pre-Approval-Leads-Webhook"
+        ],
+        "summary": "PRE_APPROVAL_LEADS",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ChannelID"
+          },
+          {
+            "$ref": "#/components/parameters/CorrelationID"
+          },
+          {
+            "$ref": "#/components/parameters/ApplicationID"
+          },
+          {
+            "$ref": "#/components/parameters/SessionID"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreApprovalLeads"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "4xx": {
+            "description": "Do Not Retry"
+          },
+          "5xx": {
+            "description": "Retry. Avvance will try up to 2 times until server responds successfully. In event of continued failure, Avvance will attempt to post the response one more time the next day at 1 am CST. No Further attempts will be made.\n"
+          }
+        }
+      }
+    }
+  }
+}
